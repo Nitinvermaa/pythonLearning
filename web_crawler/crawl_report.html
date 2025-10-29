@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Crawl Report</title>
+    
+    <!-- Bootstrap CSS for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+    
+    <!-- Chart.js CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.css" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: linear-gradient(135deg, #E91E63 0%, #9C27B0 100%); min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #E91E63 0%, #9C27B0 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; font-size: 2.5em; }
+        .header p { margin: 10px 0 0 0; opacity: 0.9; }
+        
+        .kpi-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .kpi-value { font-size: 2em; font-weight: bold; color: #E91E63; }
+        .kpi-label { color: #666; font-size: 0.9em; }
+        
+        .tooltip-col { position: relative; }
+        .tooltip-col:hover { cursor: help; }
+        
+        .slow-page { background-color: #ffebee !important; border-left: 4px solid #f44336 !important; }
+        
+        .metric-box { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #E91E63; }
+        .metric-box h5 { margin: 0 0 8px 0; color: #333; }
+        .metric-box p { margin: 0; color: #666; font-size: 0.9em; }
+        
+        .chart-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 0; }
+        
+        table { font-size: 0.9em; }
+        .dataTables_wrapper { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        .badge { padding: 5px 10px; border-radius: 5px; }
+        .badge-success { background: #28a745; color: white; }
+        .badge-danger { background: #dc3545; color: white; }
+        .badge-warning { background: #ffc107; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Advanced Crawl Report</h1>
+        <p>Interactive performance analysis with real-time metrics</p>
+    </div>
+    
+    <!-- KPI Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="kpi-card text-center">
+                <div class="kpi-value">10</div>
+                <div class="kpi-label">Total Pages Crawled</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card text-center">
+                <div class="kpi-value">383</div>
+                <div class="kpi-label">Links Checked</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card text-center">
+                <div class="kpi-value">38</div>
+                <div class="kpi-label">Broken Links</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="kpi-card text-center">
+                <div class="kpi-value">1236ms</div>
+                <div class="kpi-label">Avg Load Time</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Metric Definitions -->
+    <div class="metric-box">
+        <h5>📊 Performance Metrics Guide</h5>
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>TTFB (ms):</strong> Time to First Byte - Time from request until first response byte</p>
+                <p><strong>FCP (ms):</strong> First Contentful Paint - When first content becomes visible</p>
+                <p><strong>LCP (ms):</strong> Largest Contentful Paint - When largest content element loads</p>
+                <p><strong>CLS:</strong> Cumulative Layout Shift - Visual stability score (lower is better)</p>
+                <p><strong>INP (ms):</strong> Interaction to Next Paint - Input responsiveness latency</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Load Event:</strong> Full page load event time</p>
+                <p><strong>DOM Loaded:</strong> DOM content loaded event time</p>
+                <p><strong>Requests:</strong> Total number of HTTP requests</p>
+                <p><strong>Bytes:</strong> Total data transferred in bytes</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Chart -->
+    <div class="chart-container">
+        <h3>📈 Performance Metrics Comparison</h3>
+        <p class="text-muted">Comparing TTFB, FCP, LCP, and Load Event times across top 10 slowest pages</p>
+        <canvas id="performanceChart"></canvas>
+    </div>
+    
+    <!-- Pages Table -->
+    <div class="dataTables_wrapper">
+        <h3>📄 All Crawled Pages</h3>
+        <table id="pagesTable" class="table table-striped table-hover">
+            <thead class="thead-dark">
+                <tr>
+                    <th>URL</th>
+                    <th>Title</th>
+                    <th title="HTTP status code">Status</th>
+                    <th title="Time to First Byte - Time from request until first response byte">TTFB (ms)</th>
+                    <th title="First Contentful Paint - When first content becomes visible">FCP (ms)</th>
+                    <th title="Largest Contentful Paint - When largest content element loads">LCP (ms)</th>
+                    <th title="Cumulative Layout Shift - Visual stability score (lower is better)">CLS</th>
+                    <th title="Full page load event time">Load (ms)</th>
+                    <th title="Number of broken links found">Broken</th>
+                </tr>
+            </thead>
+            <tbody id="pagesTableBody">
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Broken Links -->
+    <div class="dataTables_wrapper mt-4">
+        <h3>🔗 Broken Links</h3>
+        <table id="brokenTable" class="table table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Source URL</th>
+                    <th>Broken Link</th>
+                    <th>Status</th>
+                    <th>Error</th>
+                </tr>
+            </thead>
+            <tbody id="brokenTableBody">
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Errors -->
+    <div class="dataTables_wrapper mt-4">
+        <h3>⚠️ Errors</h3>
+        <table id="errorsTable" class="table table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th>URL</th>
+                    <th>Error Message</th>
+                </tr>
+            </thead>
+            <tbody id="errorsTableBody">
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <script>
+        // Data
+        const pagesData = [{"url":"https:\/\/www.t-mobile.com\/","title":"Sitio oficial de T-Mobile\u00ae | La mejor red 5G y planes de datos ilimitados","status":200,"ttfb_ms":59.0,"fcp_ms":772,"lcp_ms":0,"cls":0,"inp_ms":0,"dom_content_loaded_ms":642.5,"response_end_ms":82.2999992371,"load_event_ms":868.6999988556,"req_count":178,"bytes_encoded":7373080,"bytes_transfer":300,"bytes_img":569607,"bytes_script":4497463,"bytes_css":0,"bytes_font":0,"console_errors":7,"cache_control":"must-revalidate, public, max-age=900, s-maxage=14400, stale-if-error=86400","content_encoding":"br","links_checked":9,"links_broken":1},{"url":"https:\/\/www.t-mobile.com\/cell-phone-plans","title":"Nuestros mejores planes de datos ilimitados para tel\u00e9fonos: compara los planes Experience","status":200,"ttfb_ms":3695.7000007629,"fcp_ms":4492,"lcp_ms":0,"cls":0,"inp_ms":0,"dom_content_loaded_ms":4236.3000011444,"response_end_ms":3781.5,"load_event_ms":4696.1000003815,"req_count":160,"bytes_encoded":9727410,"bytes_transfer":300,"bytes_img":246682,"bytes_script":3679076,"bytes_css":106560,"bytes_font":0,"console_errors":9,"cache_control":"max-age=0, no-cache, private","content_encoding":"br","links_checked":3,"links_broken":1},{"url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","title":"T-Mobile\u00ae SIM Card: Prices, 1 Colors, Sizes, Features & Specs","status":200,"ttfb_ms":311.8000011444,"fcp_ms":1220,"lcp_ms":0,"cls":0,"inp_ms":0,"dom_content_loaded_ms":1105.5,"response_end_ms":411.8999996185,"load_event_ms":1423.5,"req_count":250,"bytes_encoded":11735720,"bytes_transfer":300,"bytes_img":5781,"bytes_script":9360552,"bytes_css":53548,"bytes_font":0,"console_errors":12,"cache_control":"max-age=0, no-cache, private","content_encoding":"br","links_checked":150,"links_broken":13},{"url":"https:\/\/www.t-mobile.com\/cell-phones","title":"New Cell Phones for Sale | Buy Smartphones Online or in Store | T-Mobile","status":200,"ttfb_ms":140.0,"fcp_ms":1056,"lcp_ms":0,"cls":0,"inp_ms":0,"dom_content_loaded_ms":733.7999992371,"response_end_ms":177.1999988556,"load_event_ms":1133.5,"req_count":250,"bytes_encoded":7213730,"bytes_transfer":0,"bytes_img":1817,"bytes_script":4236269,"bytes_css":0,"bytes_font":0,"console_errors":2,"cache_control":"must-revalidate, public, max-age=900, s-maxage=86400, stale-if-error=86400","content_encoding":"br","links_checked":193,"links_broken":15},{"url":"https:\/\/www.t-mobile.com\/es.t-mobile.com","title":"Sitio oficial de T-Mobile\u00ae | La mejor red 5G y planes de datos ilimitados","status":200,"ttfb_ms":9.7000007629,"fcp_ms":760,"lcp_ms":0,"cls":0,"inp_ms":0,"dom_content_loaded_ms":648.0,"response_end_ms":15.6000003815,"load_event_ms":1008.2000007629,"req_count":200,"bytes_encoded":7598514,"bytes_transfer":300,"bytes_img":569607,"bytes_script":4497463,"bytes_css":53548,"bytes_font":0,"console_errors":5,"cache_control":"must-revalidate, public, max-age=900, s-maxage=14400, stale-if-error=86400","content_encoding":"br","links_checked":8,"links_broken":1},{"url":"https:\/\/www.t-mobile.com\/home-internet","title":"Internet residencial de T-Mobile | Internet residencial inal\u00e1mbrico 5G confiable","status":200,"ttfb_ms":146.6000003815,"fcp_ms":788,"lcp_ms":0,"cls":0,"inp_ms":0,"dom_content_loaded_ms":665.3999996185,"response_end_ms":148.5,"load_event_ms":829.5,"req_count":187,"bytes_encoded":7230497,"bytes_transfer":2579,"bytes_img":585206,"bytes_script":4490894,"bytes_css":67794,"bytes_font":0,"console_errors":12,"cache_control":"must-revalidate, public, max-age=900, s-maxage=14400, stale-if-error=86400","content_encoding":"br","links_checked":3,"links_broken":1},{"url":"https:\/\/www.t-mobile.com\/offers","title":"Nuestras mejores ofertas en tel\u00e9fonos y promociones de dispositivos | T-Mobile","status":200,"ttfb_ms":98.7000007629,"fcp_ms":708,"lcp_ms":0,"cls":0,"inp_ms":0,"dom_content_loaded_ms":471.4000015259,"response_end_ms":105.6000003815,"load_event_ms":735.9000015259,"req_count":177,"bytes_encoded":6223599,"bytes_transfer":3721,"bytes_img":928229,"bytes_script":3093873,"bytes_css":0,"bytes_font":0,"console_errors":18,"cache_control":"must-revalidate, public, max-age=900, s-maxage=14400, stale-if-error=86400","content_encoding":"br","links_checked":3,"links_broken":1},{"url":"https:\/\/www.t-mobile.com\/resources\/how-to-join-us","title":"C\u00e1mbiate a T-Mobile desde Verizon o ATT | Nuestra mejores ofertas para cambiarte","status":200,"ttfb_ms":118.0,"fcp_ms":648,"lcp_ms":0,"cls":0,"inp_ms":0,"dom_content_loaded_ms":400.0,"response_end_ms":123.0,"load_event_ms":557.8999996185,"req_count":157,"bytes_encoded":4601560,"bytes_transfer":300,"bytes_img":77572,"bytes_script":2368122,"bytes_css":106560,"bytes_font":0,"console_errors":43,"cache_control":"must-revalidate, public, max-age=900, s-maxage=14400, stale-if-error=86400","content_encoding":"br","links_checked":3,"links_broken":2},{"url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","title":"Sitio oficial de T-Mobile\u00ae | La mejor red 5G y planes de datos ilimitados","status":404,"ttfb_ms":9.1000003815,"fcp_ms":604,"lcp_ms":0,"cls":0,"inp_ms":0,"dom_content_loaded_ms":407.7999992371,"response_end_ms":10.7000007629,"load_event_ms":645.3999996185,"req_count":175,"bytes_encoded":7373597,"bytes_transfer":300,"bytes_img":569607,"bytes_script":4497463,"bytes_css":0,"bytes_font":0,"console_errors":7,"cache_control":"","content_encoding":"gzip","links_checked":8,"links_broken":1},{"url":"https:\/\/www.t-mobile.com\/5g\/phones?INTNAV=tNav%3ADevices%3A5GPhones","title":"Nuestros mejores tel\u00e9fonos compatibles con 5G (2025) | T-Mobile","status":200,"ttfb_ms":52.2999992371,"fcp_ms":668,"lcp_ms":0,"cls":0,"inp_ms":0,"dom_content_loaded_ms":319.8999996185,"response_end_ms":59.7999992371,"load_event_ms":464.1000003815,"req_count":176,"bytes_encoded":4996950,"bytes_transfer":2088,"bytes_img":301474,"bytes_script":2366896,"bytes_css":265614,"bytes_font":0,"console_errors":8,"cache_control":"must-revalidate, public, max-age=900, s-maxage=14400, stale-if-error=86400","content_encoding":"br","links_checked":3,"links_broken":2}];
+        const brokenData = [{"source_url":"https:\/\/www.t-mobile.com\/","link_url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone-plans","link_url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/account\/dashboard?INTNAV=tNav:BackToMyAccount","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/account\/dashboard?INTNAV=tNav:LogIn","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/bill\/summary?INTNAV=tNav%3AMyAccount%3ABillPay","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/cell-phone\/es.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/cell-phone\/www.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/cell-phone\/www.t-mobile.com\/satellite","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/commerce\/device-intent?INTNAV=tNav%3AMyAccount%3AAddALine","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/community\/?INTNAV=tNav%3AMyAccount%3ACommunity","status":400,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/dns?INTNAV=fNav%3ADoNotSell&Brand=Magenta&Site=Sell_Web&Origin_URL=https%3A%2F%2Fwww.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/jump-choice","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/orders\/check-order?INTNAV=tNav%3AMyAccount%3ACheckOrderStatus","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/purchase\/shop?INTNAV=tNav%3AMyAccount%3AUpgrade","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","link_url":"https:\/\/www.t-mobile.com\/trade-in","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/about-us?INTNAV=fNav%3AAbout","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/account\/dashboard?INTNAV=tNav:BackToMyAccount","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/account\/dashboard?INTNAV=tNav:LogIn","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/bill\/summary?INTNAV=tNav%3AMyAccount%3ABillPay","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/cell-phone\/motorola-razr-ultra-2025","status":403,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/commerce\/device-intent?INTNAV=tNav%3AMyAccount%3AAddALine","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/community\/?INTNAV=tNav%3AMyAccount%3ACommunity","status":400,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/dns?INTNAV=fNav%3ADoNotSell&Brand=Magenta&Site=Sell_Web&Origin_URL=https%3A%2F%2Fwww.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/home-internet\/eligibility?INTNAV=tNav%3ACoverage%3AHomeInternet","status":403,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/orders\/check-order?INTNAV=tNav%3AMyAccount%3ACheckOrderStatus","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/purchase\/shop?INTNAV=tNav%3AMyAccount%3AUpgrade","status":403,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/resources\/bring-your-own-phone?INTNAV=fNav%3ASwitchToT-Mobile%3ABringYourOwnDevice","status":403,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/responsibility\/consumer-info?INTNAV=fNav%3AConsumerInformation","status":403,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/responsibility\/legal\/licenses-and-patents?INTNAV=fNav%3ALicenses-and-Patents","status":403,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/cell-phones","link_url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/es.t-mobile.com","link_url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/home-internet","link_url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/offers","link_url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/resources\/how-to-join-us","link_url":"https:\/\/www.t-mobile.com\/resources\/es.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/resources\/how-to-join-us","link_url":"https:\/\/www.t-mobile.com\/resources\/www.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","link_url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/5g\/phones?INTNAV=tNav%3ADevices%3A5GPhones","link_url":"https:\/\/www.t-mobile.com\/5g\/es.t-mobile.com","status":404,"error":""},{"source_url":"https:\/\/www.t-mobile.com\/5g\/phones?INTNAV=tNav%3ADevices%3A5GPhones","link_url":"https:\/\/www.t-mobile.com\/5g\/www.t-mobile.com","status":404,"error":""}];
+        const errorsData = [{"url":"https:\/\/www.t-mobile.com\/","error":"console: [Wed, 29 Oct 2025 07:07:00 GMT] [error] [ phoenix-platform  Phoenix Error Service ] unhandled promise rejection caught: {}"},{"url":"https:\/\/www.t-mobile.com\/","error":"console: Failed to load resource: the server responded with a status of 404 ()"},{"url":"https:\/\/www.t-mobile.com\/","error":"console: Attestation check for Attribution Reporting on https:\/\/www.facebook.com failed."},{"url":"https:\/\/www.t-mobile.com\/cell-phone-plans","error":"console: [Wed, 29 Oct 2025 07:07:18 GMT] [error] [ phoenix-platform  Phoenix Error Service ] unhandled promise rejection caught: {}"},{"url":"https:\/\/www.t-mobile.com\/cell-phone-plans","error":"console: Failed to load resource: net::ERR_FAILED"},{"url":"https:\/\/www.t-mobile.com\/cell-phone-plans","error":"console: Failed to load resource: the server responded with a status of 404 ()"},{"url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","error":"console: You have included the Google Maps JavaScript API multiple times on this page. This may cause unexpected errors."},{"url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","error":"console: Failed to load resource: the server responded with a status of 404 ()"},{"url":"https:\/\/www.t-mobile.com\/cell-phone\/t-mobile-sim-card","error":"console: Failed to load resource: the server responded with a status of 404 ()"},{"url":"https:\/\/www.t-mobile.com\/cell-phones","error":"console: Attestation check for Attribution Reporting on https:\/\/www.facebook.com failed."},{"url":"https:\/\/www.t-mobile.com\/cell-phones","error":"console: [Wed, 29 Oct 2025 07:08:11 GMT] [error] [ phoenix-platform  Phoenix Error Service ] unhandled promise rejection caught: {}"},{"url":"https:\/\/www.t-mobile.com\/es.t-mobile.com","error":"console: Failed to load resource: the server responded with a status of 404 ()"},{"url":"https:\/\/www.t-mobile.com\/es.t-mobile.com","error":"console: [Wed, 29 Oct 2025 07:08:26 GMT] [error] [ phoenix-platform  Phoenix Error Service ] unhandled promise rejection caught: {}"},{"url":"https:\/\/www.t-mobile.com\/es.t-mobile.com","error":"console: Attestation check for Attribution Reporting on https:\/\/www.facebook.com failed."},{"url":"https:\/\/www.t-mobile.com\/home-internet","error":"console: Failed to load resource: the server responded with a status of 404 ()"},{"url":"https:\/\/www.t-mobile.com\/home-internet","error":"console: Attestation check for Attribution Reporting on https:\/\/www.facebook.com failed."},{"url":"https:\/\/www.t-mobile.com\/home-internet","error":"console: Attestation check for Attribution Reporting on https:\/\/www.facebook.com failed."},{"url":"https:\/\/www.t-mobile.com\/offers","error":"console: Attestation check for Shared Storage on https:\/\/www.googleadservices.com failed."},{"url":"https:\/\/www.t-mobile.com\/offers","error":"console: Failed to load resource: the server responded with a status of 404 ()"},{"url":"https:\/\/www.t-mobile.com\/offers","error":"console: Attestation check for Attribution Reporting on https:\/\/www.facebook.com failed."},{"url":"https:\/\/www.t-mobile.com\/resources\/how-to-join-us","error":"console: [Wed, 29 Oct 2025 07:09:09 GMT] [error] [ phoenix-platform  Phoenix Error Service ] unhandled promise rejection caught: {}"},{"url":"https:\/\/www.t-mobile.com\/resources\/how-to-join-us","error":"console: Failed to load resource: the server responded with a status of 404 ()"},{"url":"https:\/\/www.t-mobile.com\/resources\/how-to-join-us","error":"console: Attestation check for Attribution Reporting on https:\/\/www.facebook.com failed."},{"url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","error":"console: [Wed, 29 Oct 2025 07:09:21 GMT] [error] [ phoenix-platform  Phoenix Error Service ] unhandled promise rejection caught: {}"},{"url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","error":"console: Failed to load resource: the server responded with a status of 404 ()"},{"url":"https:\/\/www.t-mobile.com\/www.t-mobile.com","error":"console: Attestation check for Attribution Reporting on https:\/\/www.facebook.com failed."},{"url":"https:\/\/www.t-mobile.com\/5g\/phones?INTNAV=tNav%3ADevices%3A5GPhones","error":"console: Failed to load resource: the server responded with a status of 404 ()"},{"url":"https:\/\/www.t-mobile.com\/5g\/phones?INTNAV=tNav%3ADevices%3A5GPhones","error":"console: Attestation check for Attribution Reporting on https:\/\/www.facebook.com failed."},{"url":"https:\/\/www.t-mobile.com\/5g\/phones?INTNAV=tNav%3ADevices%3A5GPhones","error":"console: Attestation check for Attribution Reporting on https:\/\/www.facebook.com failed."}];
+        const topSlowestUrls = ['https://www.t-mobile.com/cell-phone-plans', 'https://www.t-mobile.com/cell-phone/t-mobile-sim-card', 'https://www.t-mobile.com/cell-phones', 'https://www.t-mobile.com/es.t-mobile.com', 'https://www.t-mobile.com/', 'https://www.t-mobile.com/home-internet', 'https://www.t-mobile.com/offers', 'https://www.t-mobile.com/www.t-mobile.com', 'https://www.t-mobile.com/resources/how-to-join-us', 'https://www.t-mobile.com/5g/phones?INTNAV=tNav%3ADevices%3A5GPhones'];
+        
+        // Chart data
+        const chartLabels = ['https://www.t-mobile.com/cell-phone-plans', 'https://www.t-mobile.com/cell-phone/t-mobile-sim-c...', 'https://www.t-mobile.com/cell-phones', 'https://www.t-mobile.com/es.t-mobile.com', 'https://www.t-mobile.com/', 'https://www.t-mobile.com/home-internet', 'https://www.t-mobile.com/offers', 'https://www.t-mobile.com/www.t-mobile.com', 'https://www.t-mobile.com/resources/how-to-join-us', 'https://www.t-mobile.com/5g/phones?INTNAV=tNav%3AD...'];
+        const chartTtfb = [3695.7000007629395, 311.8000011444092, 140.0, 9.700000762939453, 59.0, 146.60000038146973, 98.70000076293945, 9.100000381469727, 118.0, 52.29999923706055];
+        const chartFcp = [4492, 1220, 1056, 760, 772, 788, 708, 604, 648, 668];
+        const chartLcp = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        const chartLoad = [4696.10000038147, 1423.5, 1133.5, 1008.2000007629395, 868.6999988555908, 829.5, 735.9000015258789, 645.3999996185303, 557.8999996185303, 464.1000003814697];
+        
+        // Initialize Multiline Chart
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [
+                    {
+                        label: 'TTFB (ms)',
+                        data: chartTtfb,
+                        borderColor: 'rgba(233, 30, 99, 1)',
+                        backgroundColor: 'rgba(233, 30, 99, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: 'FCP (ms)',
+                        data: chartFcp,
+                        borderColor: 'rgba(156, 39, 176, 1)',
+                        backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: 'LCP (ms)',
+                        data: chartLcp,
+                        borderColor: 'rgba(103, 58, 183, 1)',
+                        backgroundColor: 'rgba(103, 58, 183, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    },
+                    {
+                        label: 'Load Event (ms)',
+                        data: chartLoad,
+                        borderColor: 'rgba(63, 81, 181, 1)',
+                        backgroundColor: 'rgba(63, 81, 181, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { 
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    title: { 
+                        display: true,
+                        text: 'Performance Metrics Comparison (Top 10 Slowest Pages)',
+                        font: { size: 16 }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        title: { display: true, text: 'Time (ms)' }
+                    },
+                    x: { 
+                        title: { display: true, text: 'Pages' },
+                        ticks: { maxRotation: 45, minRotation: 45 }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+        
+        // Populate and initialize Pages Table
+        const pagesRows = pagesData.map(page => {
+            const isSlow = topSlowestUrls.includes(page.url);
+            const rowClass = isSlow ? 'slow-page' : '';
+            return '<tr class="' + rowClass + '">' +
+                '<td><a href="' + (page.url || '-') + '" target="_blank">' + (page.url || '-') + '</a></td>' +
+                '<td>' + (page.title || '-') + '</td>' +
+                '<td><span class="badge ' + (page.status >= 400 ? 'badge-danger' : 'badge-success') + '">' + (page.status || '-') + '</span></td>' +
+                '<td>' + (page.ttfb_ms || '-') + '</td>' +
+                '<td>' + (page.fcp_ms || '-') + '</td>' +
+                '<td>' + (page.lcp_ms || '-') + '</td>' +
+                '<td>' + (page.cls || '-') + '</td>' +
+                '<td>' + (page.load_event_ms || '-') + '</td>' +
+                '<td>' + (page.links_broken || 0) + '</td>' +
+                '</tr>';
+        }).join('');
+        
+        $('#pagesTableBody').html(pagesRows);
+        $('#pagesTable').DataTable({
+            order: [[7, 'desc']], // Sort by load_event_ms descending
+            pageLength: 25,
+            dom: 'Bfrtip',
+            columnDefs: [{
+                targets: 1,
+                render: function(data, type, row) {
+                    if (type === 'display' && data && data.length > 50) {
+                        return data.substring(0, 50) + '...';
+                    }
+                    return data;
+                }
+            }]
+        });
+        
+        // Populate Broken Links Table
+        const brokenRows = brokenData.map(link => 
+            '<tr>' +
+                '<td><a href="' + (link.source_url || '-') + '" target="_blank">' + (link.source_url || '-') + '</a></td>' +
+                '<td><a href="' + (link.link_url || '-') + '" target="_blank">' + (link.link_url || '-') + '</a></td>' +
+                '<td>' + (link.status || '-') + '</td>' +
+                '<td>' + (link.error || '-') + '</td>' +
+            '</tr>'
+        ).join('');
+        
+        $('#brokenTableBody').html(brokenRows);
+        $('#brokenTable').DataTable({pageLength: 25});
+        
+        // Populate Errors Table
+        const errorsRows = errorsData.map(err =>
+            '<tr>' +
+                '<td><a href="' + (err.url || '-') + '" target="_blank">' + (err.url || '-') + '</a></td>' +
+                '<td>' + (err.error || '-') + '</td>' +
+            '</tr>'
+        ).join('');
+        
+        $('#errorsTableBody').html(errorsRows);
+        $('#errorsTable').DataTable({pageLength: 25});
+        
+        // Add tooltips to all column headers
+        $(document).ready(function() {
+            const tooltipMap = {'url': 'The page URL', 'title': 'The page title from document.title', 'status': 'HTTP status code', 'ttfb_ms': 'Time to First Byte - Time from request until first response byte', 'fcp_ms': 'First Contentful Paint - When first content becomes visible', 'lcp_ms': 'Largest Contentful Paint - When largest content element loads', 'cls': 'Cumulative Layout Shift - Visual stability score (lower is better)', 'inp_ms': 'Interaction to Next Paint - Input responsiveness latency', 'dom_content_loaded_ms': 'DOM content loaded event time', 'response_end_ms': 'HTTP response end time', 'load_event_ms': 'Full page load event time', 'req_count': 'Total number of HTTP requests', 'bytes_encoded': 'Total bytes transferred (compressed)', 'bytes_transfer': 'Total bytes transferred (actual)', 'bytes_img': 'Bytes for image resources', 'bytes_script': 'Bytes for JavaScript files', 'bytes_css': 'Bytes for CSS files', 'bytes_font': 'Bytes for font files', 'console_errors': 'Number of console errors on page', 'cache_control': 'Cache-Control header value', 'content_encoding': 'Content encoding (gzip, etc)', 'links_checked': 'Total links checked on this page', 'links_broken': 'Number of broken links found'};
+            $('#pagesTable thead th').each(function() {
+                const colName = $(this).text().trim();
+                if (tooltipMap[colName]) {
+                    $(this).attr('title', tooltipMap[colName]);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
