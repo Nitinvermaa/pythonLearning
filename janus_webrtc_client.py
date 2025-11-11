@@ -120,7 +120,7 @@ class JanusWebRTCClient:
                     return False
     
     async def publish_offer(self, sdp_offer):
-        """Publish SDP offer to Janus"""
+        """Publish SDP offer to Janus and get SDP answer"""
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.janus_url}/{self.session_id}/{self.handle_id}",
@@ -140,10 +140,17 @@ class JanusWebRTCClient:
             ) as resp:
                 data = await resp.json()
                 if data.get("janus") == "success":
+                    # Extract SDP from Janus response
+                    # SDP is in the 'jsep' field: {"jsep": {"type": "answer", "sdp": "..."}}
                     jsep = data.get("jsep", {})
                     if jsep.get("type") == "answer":
                         sdp_answer = jsep.get("sdp")
                         logger.info("Received SDP answer from Janus")
+                        
+                        # Optionally log the SDP content
+                        if logger.isEnabledFor(logging.DEBUG):
+                            logger.debug(f"SDP Answer from Janus:\n{sdp_answer}")
+                        
                         return sdp_answer
                     else:
                         logger.error(f"Unexpected response: {data}")
@@ -151,6 +158,28 @@ class JanusWebRTCClient:
                 else:
                     logger.error(f"Failed to publish offer: {data}")
                     return None
+    
+    def extract_sdp_from_response(self, janus_response):
+        """
+        Extract SDP content from any Janus response
+        
+        Args:
+            janus_response: JSON response from Janus API
+            
+        Returns:
+            dict with 'type' (offer/answer) and 'sdp' (SDP string), or None
+        """
+        if not janus_response or janus_response.get("janus") != "success":
+            return None
+        
+        jsep = janus_response.get("jsep")
+        if not jsep:
+            return None
+        
+        return {
+            "type": jsep.get("type"),  # "offer" or "answer"
+            "sdp": jsep.get("sdp")     # The SDP content as string
+        }
     
     def _generate_transaction(self):
         """Generate a random transaction ID"""
