@@ -82,3 +82,4 @@ python sso_crawler.py --start-url "https://www.t-mobile.com/" --user-data-dir "C
 - **Headless vs Non-headless**: Works in both modes now, but non-headless is more reliable for initial testing
 - **Profile path**: Make sure Chrome is completely closed before running, or the profile might be locked
 
+
