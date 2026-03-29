@@ -92,3 +92,4 @@ Open `crawl_report.html` in your browser to see the interactive dashboard!
 5. ✅ **Search**: Type in search box to filter
 6. ✅ **Clickable URLs**: Click any URL to open in new tab
 
+
